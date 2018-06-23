@@ -62,6 +62,7 @@ public class ImagePaint{
 	JMenuItem menuItem_undo, menuItem_redo;
 	JMenuItem menuItem_rotate90, menuItem_rotatem90, menuItem_rotate180;
 	JMenuItem menuItem_flipHorizontal, menuItem_flipVertical;
+	JMenuItem menuItem_resize, menuItem_resizeCanvas;
 	JMenuItem menuItem_about;
 	JMenuItem menuItem_blur, menuItem_sharpen, menuItem_sobel; 
 	//
@@ -158,10 +159,46 @@ public class ImagePaint{
 			}else if (arg0.getSource() == menuItem_sharpen){
 				drawArea.sharpen();
 			}else if (arg0.getSource() == menuItem_sobel){
-
+				drawArea.sobel();
 			}else if (arg0.getSource() == menuItem_about){
 				new About();
+			}else if (arg0.getSource() == menuItem_rotate90){
+				drawArea.rotate();
+			}else if (arg0.getSource() == menuItem_flipHorizontal){
+				drawArea.flip("horizontal");
+			}else if (arg0.getSource() == menuItem_flipVertical){
+				drawArea.flip("vertical");
+			}else if (arg0.getSource() == menuItem_resize){
+				JTextField xField = new JTextField(10);
+				JTextField yField = new JTextField(10);
+				JPanel panel = new JPanel();
+				panel.add(new JLabel("width:"));
+				panel.add(xField);
+				panel.add(new JLabel("height:"));
+				panel.add(yField);
+				int result = JOptionPane.showConfirmDialog(null, panel, "Image Size", JOptionPane.OK_CANCEL_OPTION);
+				if (result == JOptionPane.OK_OPTION){
+					drawArea.resizeImage(Integer.parseInt(xField.getText()), Integer.parseInt(yField.getText()));
+					scrollpane.revalidate();
+					scrollpane.repaint();
+				}
+			}else if (arg0.getSource() == menuItem_resizeCanvas){
+				JTextField xField = new JTextField(10);
+				JTextField yField = new JTextField(10);
+				JPanel panel = new JPanel();
+				panel.add(new JLabel("width:"));
+				panel.add(xField);
+				panel.add(new JLabel("height:"));
+				panel.add(yField);
+				int result = JOptionPane.showConfirmDialog(null, panel, "Image Size", JOptionPane.OK_CANCEL_OPTION);
+				if (result == JOptionPane.OK_OPTION){
+					drawArea.resizeCanvas(Integer.parseInt(xField.getText()), Integer.parseInt(yField.getText()));
+					scrollpane.revalidate();
+					scrollpane.repaint();
+				}
 			}
+			
+			
 		};
 	};
 	
@@ -235,6 +272,8 @@ public class ImagePaint{
 		menuItem_rotate90 = makeJMenuItem("90 degree");
 		menuItem_flipHorizontal = makeJMenuItem("Horizontal");
 		menuItem_flipVertical = makeJMenuItem("Vertical");
+		menuItem_resize = makeJMenuItem("Resize Image");
+		menuItem_resizeCanvas = makeJMenuItem("Resize Canvas");
 		fileMenu.add(menuItem_new);
 		fileMenu.add(menuItem_open);
 		fileMenu.add(menuItem_save);
@@ -243,6 +282,8 @@ public class ImagePaint{
 		editMenu.add(menuItem_redo);
 		imageMenu.add(subRotateMenu);
 		imageMenu.add(subFilpMenu);
+		imageMenu.add(menuItem_resize);
+		imageMenu.add(menuItem_resizeCanvas);
 		helpMenu.add(menuItem_about);
 		effectMenu.add(menuItem_blur);
 		effectMenu.add(menuItem_sharpen);

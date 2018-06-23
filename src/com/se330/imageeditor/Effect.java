@@ -10,7 +10,7 @@ public class Effect {
 	public Effect(){
 		
 	}
-	public BufferedImage sharpen(BufferedImage paintImage){
+	public BufferedImageOp sharpen(){
         float[] sharpen = new float[] {
             0.0f, -1.0f, 0.0f,
             -1.0f, 5.0f, -1.0f,
@@ -18,7 +18,26 @@ public class Effect {
         };
         Kernel kernel = new Kernel(3,3,sharpen);
         BufferedImageOp op = new ConvolveOp(kernel);
-        BufferedImage sharpened = op.filter(paintImage, null);
-        return sharpened;
+        return op;
+	}
+	public BufferedImageOp sobel(){
+		float[] sobel = new float[] {
+	            -1.0f, 0.0f, 1.0f,
+	            -1.0f, 0.0f, 1.0f,
+	            -1.0f, 0.0f, 1.0f
+	    };
+        Kernel kernel = new Kernel(3,3,sobel);
+        BufferedImageOp op = new ConvolveOp(kernel);
+        return op;
+	}
+	public BufferedImageOp gaussian(){
+		float[] gaussian = new float[] {
+				1/16f, 1/8f, 1/16f,
+	            1/8f, 1/4f, 1/8f,
+	            1/16f, 1/8f, 1/16f
+	    };
+        Kernel kernel = new Kernel(3,3,gaussian);
+        BufferedImageOp op = new ConvolveOp(kernel);
+        return op;
 	}
 }

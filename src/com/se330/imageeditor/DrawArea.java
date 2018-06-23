@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Point;
 import java.awt.Robot;
 import java.awt.Shape;
@@ -20,7 +21,13 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.awt.image.BufferedImageOp;
+import java.awt.image.ColorModel;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -47,7 +54,7 @@ public class DrawArea extends JComponent{
 		ArrayList<ActionObject> redoList = new ArrayList<ActionObject>();
 		private BufferedImage paintImage, paintImage_tmp;
 		
-		private Graphics2D graph;
+		private Graphics2D graph, graph_tmp;
 		
 		int Control = 2;
 		int strokeSize = 1;
@@ -134,9 +141,11 @@ public class DrawArea extends JComponent{
 			this.filePath = filePath;
 		}
 		public DrawArea(ImagePaint imagePaint){
+			
 			final ImagePaint imagepaint = (ImagePaint)imagePaint;
 			addMouseListener(new MouseAdapter(){
 				public void mousePressed(MouseEvent arg0) {
+					graph_tmp = (Graphics2D)paintImage_tmp.getGraphics();
 					Shape aShape = null;
 					if (Control == 1){
 						aShape = new BrushShape();
@@ -166,6 +175,7 @@ public class DrawArea extends JComponent{
 				public void mouseReleased(MouseEvent arg0) {
 					endPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
 					Shape aShape = null;
+					graph_tmp.setStroke(new BasicStroke(strokeSize));
 					if (Control == 1){
 						aShape = drawBrush(startPoint.x, startPoint.y, strokeSize*5, strokeSize*5);			
 						BrushShape brushShape = new BrushShape();
@@ -179,14 +189,28 @@ public class DrawArea extends JComponent{
 					}else if (Control == 2){
 						aShape = drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 						actionList.add(new ShapeObject("line", aShape, strokeSize, strokeColor, false, fillColor, startPoint, endPoint));
+						graph_tmp.setPaint(strokeColor);
+						graph_tmp.draw(aShape);
 						redoList.clear();
 					}else if (Control == 3){
 						aShape = drawRectangle(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 						actionList.add(new ShapeObject("rectangle", aShape, strokeSize, strokeColor, fillMode, fillColor, startPoint, endPoint));
+						if (fillMode == true){
+							graph_tmp.setPaint(fillColor);
+							graph_tmp.fill(aShape);
+						}
+						graph_tmp.setPaint(strokeColor);
+						graph_tmp.draw(aShape);
 						redoList.clear();
 					}else if (Control == 4){
 						aShape = drawEllipse(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 						actionList.add(new ShapeObject("ellipse", aShape, strokeSize, strokeColor, fillMode, fillColor, startPoint, endPoint));
+						if (fillMode == true){
+							graph_tmp.setPaint(fillColor);
+							graph_tmp.fill(aShape);
+						}
+						graph_tmp.setPaint(strokeColor);
+						graph_tmp.draw(aShape);
 						redoList.clear();
 					}else if (Control == 6){
 						aShape = drawRectangle(endPoint.x-strokeSize*3, endPoint.y-strokeSize*3, endPoint.x+strokeSize*3, endPoint.y+strokeSize*3);
@@ -239,20 +263,22 @@ public class DrawArea extends JComponent{
 			addMouseWheelListener(new MouseWheelListener() {
 				
 				public void mouseWheelMoved(MouseWheelEvent arg0) {
-					if (arg0.getWheelRotation() > 0){
-						if (zoomSize > 1){
-							zoomSize = zoomSize-1;
+					if (arg0.isControlDown()){
+						if (arg0.getWheelRotation() > 0){
+							if (zoomSize > 1){
+								zoomSize = zoomSize-1;
+							}
+							
+						}else{
+							zoomSize = zoomSize+1;
 						}
-						
-					}else{
-						zoomSize = zoomSize+1;
+						repaint();
+						PREF_W = old_PREF_W*zoomSize;
+						PREF_H = old_PREF_H*zoomSize;
+						Size(PREF_W, PREF_H);
+						imagepaint.scrollpane.revalidate();
+						imagepaint.scrollpane.repaint();
 					}
-					repaint();
-					PREF_W = old_PREF_W*zoomSize;
-					PREF_H = old_PREF_H*zoomSize;
-					Size(PREF_W, PREF_H);
-					imagepaint.scrollpane.revalidate();
-					imagepaint.scrollpane.repaint();
 					
 				}
 			});
@@ -277,7 +303,9 @@ public class DrawArea extends JComponent{
 			if (paintImage == null){
 				newImage(900, 700);
 			}
-			drawObject(graph);
+			graph.drawImage(paintImage_tmp, 0, 0, null);
+			//drawObject(graph, paintImage_tmp);
+			
 			if (startPoint != null){
 				graph.setStroke(new BasicStroke(strokeSize));
 				Shape ashape = null;
@@ -303,14 +331,47 @@ public class DrawArea extends JComponent{
 					graph.draw(ashape);
 					//graph.drawImage(paintImage, 0, 0, 100, 100, this);
 				}else{
-					
+					if (Control == 5){
+						PencilShape shape = (PencilShape)((ShapeObject)(actionList.get(actionList.size()-1))).getShape();
+						for (Shape shapePoint : shape.getShapePoints()){
+							graph_tmp.setStroke(new BasicStroke(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeSize()));
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeColor());
+							graph_tmp.draw(shapePoint);
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getFillColor());
+							if (((ShapeObject)(actionList.get(actionList.size()-1))).isFillMode()){
+								graph_tmp.fill(shapePoint);
+							}
+						}
+					}else if (Control == 1){
+						BrushShape shape = (BrushShape)((ShapeObject)(actionList.get(actionList.size()-1))).getShape();
+						for (Shape shapePoint : shape.getShapePoints()){
+							graph_tmp.setStroke(new BasicStroke(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeSize()));
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeColor());
+							graph_tmp.draw(shapePoint);
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getFillColor());
+							if (((ShapeObject)(actionList.get(actionList.size()-1))).isFillMode()){
+								graph_tmp.fill(shapePoint);
+							}
+						}
+					}else if (Control == 6){
+						EraseShape shape = (EraseShape)((ShapeObject)(actionList.get(actionList.size()-1))).getShape();
+						for (Shape shapePoint : shape.getShapePoints()){
+							graph_tmp.setStroke(new BasicStroke(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeSize()));
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getStrokeColor());
+							graph_tmp.draw(shapePoint);
+							graph_tmp.setPaint(((ShapeObject)(actionList.get(actionList.size()-1))).getFillColor());
+							if (((ShapeObject)(actionList.get(actionList.size()-1))).isFillMode()){
+								graph_tmp.fill(shapePoint);
+							}
+						}
+					}
 				}
 			}
 		}
 		
-		private void drawObject(Graphics2D g){
-			paintImage_tmp = paintImage;
-			g.drawImage(paintImage_tmp, 0, 0, null);
+		private void drawObject(Graphics2D g, BufferedImage image){
+			//Graphics2D g = (Graphics2D) paintImage_tmp.getGraphics();
+
 			if (actionList != null){
 				for (ActionObject Action : actionList){
 					if (Action instanceof ShapeObject){
@@ -360,12 +421,47 @@ public class DrawArea extends JComponent{
 					}else if (Action instanceof EffectObject){
 						EffectObject action = (EffectObject)Action;
 						if (action.getEffectType() == "sharpen"){
-							paintImage_tmp = effect.sharpen(paintImage_tmp);
+							BufferedImage tmp = deepCopy(image);
+					        effect.sharpen().filter(tmp, image);
+							
+						}else if (action.getEffectType() == "sobel"){
+							BufferedImage tmp = deepCopy(image);
+					        effect.sobel().filter(tmp, image);
+						}else if (action.getEffectType() == "gaussian"){
+							BufferedImage tmp = deepCopy(image);
+					        effect.gaussian().filter(tmp, image);
+						}else if (action.getEffectType() == "resize"){
+							int w =((ScaleEffect)((EffectObject)action)).getWidth();
+							int h = ((ScaleEffect)((EffectObject)action)).getHeight();
+							Image tmp = paintImage_tmp.getScaledInstance(w, h, Image.SCALE_SMOOTH);
+							BufferedImage dimg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+						    Graphics2D g2d = dimg.createGraphics();
+						    g2d.drawImage(tmp, 0, 0, null);
+						    g2d.dispose();
+						    paintImage_tmp = deepCopy(dimg);
+						    g = (Graphics2D)paintImage_tmp.getGraphics();
+						    PREF_H = h;
+				    		PREF_W = w;
+							this.setSize(PREF_W, PREF_H);
+							
+						}else if (action.getEffectType() == "resizeCanvas"){
+							int w =((ScaleEffect)((EffectObject)action)).getWidth();
+							int h = ((ScaleEffect)((EffectObject)action)).getHeight();
+							BufferedImage dimg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+						    Graphics2D g2d = dimg.createGraphics();
+						    g2d.drawImage(paintImage_tmp, 0, 0, null);
+						    g2d.dispose();
+						    paintImage_tmp = deepCopy(dimg);
+						    g = (Graphics2D)paintImage_tmp.getGraphics();
+						    PREF_H = h;
+				    		PREF_W = w;
+							this.setSize(PREF_W, PREF_H);
 							
 						}
 					}
 				}
 			}
+			//g.drawImage(image, 0, 0, null);
 		}
 		public void clear() {
 			graph.setPaint(Color.white);
@@ -377,13 +473,23 @@ public class DrawArea extends JComponent{
 			if (actionList.size() > 0){
 				redoList.add(actionList.get(actionList.size()-1));
 				actionList.remove(actionList.size()-1);
+				paintImage_tmp = deepCopy(paintImage);
+				PREF_H = old_PREF_H;
+				PREF_W = old_PREF_W;
+				this.setSize(PREF_W, PREF_H);
+				graph_tmp = (Graphics2D) paintImage_tmp.getGraphics();
+				drawObject(graph_tmp, paintImage_tmp);
 				repaint();
+				
 			}
 		}
 		public void redo(){
 			if (redoList.size() > 0){
 				actionList.add(redoList.get(redoList.size()-1));
 				redoList.remove(redoList.size()-1);
+				paintImage_tmp = deepCopy(paintImage);
+				graph_tmp = (Graphics2D) paintImage_tmp.getGraphics();
+				drawObject(graph_tmp, paintImage_tmp);
 				repaint();
 			}
 		}
@@ -399,18 +505,20 @@ public class DrawArea extends JComponent{
 			Graphics2D tmp_g = paintImage.createGraphics();
 			tmp_g.setPaint(Color.white);
 			tmp_g.fillRect(0, 0, PREF_W, PREF_H);
+			paintImage_tmp = deepCopy(paintImage);
+			graph_tmp = (Graphics2D) paintImage_tmp.getGraphics();
 		}
 		public void saveImage(String path, FileFilter type){
-			BufferedImage tmp_paintImage = new BufferedImage(PREF_W, PREF_H, BufferedImage.TYPE_3BYTE_BGR);
-			Graphics2D tmp_g = tmp_paintImage.createGraphics();
-			drawObject(tmp_g);
+			//BufferedImage tmp_paintImage = new BufferedImage(PREF_W, PREF_H, BufferedImage.TYPE_3BYTE_BGR);
+			//Graphics2D tmp_g = tmp_paintImage.createGraphics();
+			//drawObject(tmp_g, tmp_paintImage);
 			try{
 				if (type.getDescription() == "PNG Image"){
-					ImageIO.write(tmp_paintImage, "PNG", new File(path+".png"));
+					ImageIO.write(paintImage_tmp, "PNG", new File(path+".png"));
 				}else if (type.getDescription() == "JPEG Image"){
-					ImageIO.write(tmp_paintImage, "JPEG", new File(path+".jpg"));
+					ImageIO.write(paintImage_tmp, "JPEG", new File(path+".jpg"));
 				}else if (type.getDescription() == "BMP Image"){
-					ImageIO.write(tmp_paintImage, "BMP", new File(path+".bmp"));
+					ImageIO.write(paintImage_tmp, "BMP", new File(path+".bmp"));
 				}
 				//ImageIO.write(tmp_paintImage, "PNG", new File("filename.png"));
 			}catch(Exception ex){
@@ -427,6 +535,8 @@ public class DrawArea extends JComponent{
 				old_PREF_H = PREF_H;
 				old_PREF_W = PREF_W;
 				this.setSize(PREF_W, PREF_H);
+				paintImage_tmp = deepCopy(paintImage);
+				graph_tmp = (Graphics2D) paintImage_tmp.getGraphics();
 	            repaint();
 	        }catch (Exception ex){
 	            System.out.print("Load error");
@@ -461,12 +571,74 @@ public class DrawArea extends JComponent{
 		public void sharpen(){
 			EffectObject effectObject = new EffectObject("sharpen", true, null, null);
 			actionList.add(effectObject);
+			drawObject(graph_tmp, paintImage_tmp);
 			repaint();
 		}
 		public void blur(){
-			
+			EffectObject effectObject = new EffectObject("gaussian", true, null, null);
+			actionList.add(effectObject);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
 		}
-		
+		public void sobel(){
+			EffectObject effectObject = new EffectObject("sobel", true, null, null);
+			actionList.add(effectObject);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void rotate(){
+			AffineTransform tx = AffineTransform.getRotateInstance(Math.toRadians(90), paintImage_tmp.getWidth()/2.0f, paintImage_tmp.getHeight()/2.0f);
+			AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_BILINEAR);
+			//AffineTransform trans2 = new AffineTransform();
+		    //trans2.translate(0, PREF_W-PREF_H);
+			BufferedImage bi = new BufferedImage(PREF_W+Math.abs(PREF_H-PREF_W), PREF_H+Math.abs(PREF_H-PREF_W), BufferedImage.TYPE_INT_ARGB);
+			BufferedImage bi2 = new BufferedImage(PREF_H, PREF_W, BufferedImage.TYPE_INT_ARGB);
+			//graph_tmp.drawImage(paintImage_tmp, trans2, null);
+			Graphics2D graph_bi = (Graphics2D)bi.getGraphics();
+			graph_bi.drawImage(paintImage_tmp, Math.abs(PREF_H-PREF_W), Math.abs(PREF_H-PREF_W), null);
+			bi2 = op.filter(bi, bi2);
+			paintImage_tmp = deepCopy(bi2);
+			graph_tmp = (Graphics2D)paintImage_tmp.getGraphics();
+			PREF_W = paintImage.getHeight();
+    		PREF_H = paintImage.getWidth();
+			//old_PREF_H = PREF_H;
+			//old_PREF_W = PREF_W;
+			this.setSize(PREF_W, PREF_H);
+			repaint();
+		}
+		public void flip(String str){
+			if (str == "horizontal"){
+				AffineTransform tx = AffineTransform.getScaleInstance(-1, 1);
+				tx.translate(-paintImage_tmp.getWidth(null), 0);
+				AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+				paintImage_tmp = op.filter(paintImage_tmp, null);
+			}else{
+				AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
+				tx.translate(0, -paintImage_tmp.getHeight(null));
+				AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+				paintImage_tmp = op.filter(paintImage_tmp, null);
+			}
+			repaint();
+	        
+		}
+		public void resizeImage(int w, int h){
+			ScaleEffect scaleEffect = new ScaleEffect("resize", true, null, null, w, h);
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void resizeCanvas(int w, int h){
+			ScaleEffect scaleEffect = new ScaleEffect("resizeCanvas", true, null, null, w, h);
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		static BufferedImage deepCopy(BufferedImage bi) {
+			 ColorModel cm = bi.getColorModel();
+			 boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+			 WritableRaster raster = bi.copyData(null);
+			 return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+		}
 		@Override
 		public Dimension getPreferredSize() {
 			return new Dimension(PREF_W, PREF_H);
