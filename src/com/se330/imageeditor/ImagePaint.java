@@ -47,7 +47,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class ImagePaint{
 	JRadioButton radio_pencil, radio_line, radio_rect, radio_ellipse, radio_brush, radio_erase, radio_string, radio_curve, radio_rectSelect, radio_colorPicker;
-	JButton fillBtn, strokeBtn, strokeColorBtn, fillColorBtn;
+	JRadioButton fillBtn, strokeBtn;
+	JButton strokeColorBtn, fillColorBtn;
 	JComboBox strokeSizeCbb, zoomSizeCbb;
 	Color strokeColor = Color.black;
 	Color fillColor = Color.white;
@@ -59,12 +60,12 @@ public class ImagePaint{
 	JMenuBar menuBar;
 	JMenu fileMenu, editMenu, helpMenu, imageMenu, effectMenu, subRotateMenu, subFilpMenu;
 	JMenuItem menuItem_save, menuItem_open, menuItem_new, menuItem_saveAs;
-	JMenuItem menuItem_undo, menuItem_redo;
+	JMenuItem menuItem_undo, menuItem_redo, menuItem_copy, menuItem_cut, menuItem_paste;
 	JMenuItem menuItem_rotate90, menuItem_rotatem90, menuItem_rotate180;
 	JMenuItem menuItem_flipHorizontal, menuItem_flipVertical;
-	JMenuItem menuItem_resize, menuItem_resizeCanvas;
+	JMenuItem menuItem_resize, menuItem_resizeCanvas, menuItem_invertColor, menuItem_blackWhite, menuItem_grayScale;
 	JMenuItem menuItem_about;
-	JMenuItem menuItem_blur, menuItem_sharpen, menuItem_sobel; 
+	JMenuItem menuItem_gaussian, menuItem_sharpen, menuItem_sobel, menuItem_laplacian1, menuItem_laplacian2, menuItem_laplacian3; 
 	//
 	DrawArea drawArea = new DrawArea(this);
 	JScrollPane scrollpane;
@@ -154,8 +155,8 @@ public class ImagePaint{
 				drawArea.undo();
 			}else if (arg0.getSource() == menuItem_redo){
 				drawArea.redo();
-			}else if (arg0.getSource() == menuItem_blur){
-				drawArea.blur();
+			}else if (arg0.getSource() == menuItem_gaussian){
+				drawArea.gaussian();
 			}else if (arg0.getSource() == menuItem_sharpen){
 				drawArea.sharpen();
 			}else if (arg0.getSource() == menuItem_sobel){
@@ -196,6 +197,24 @@ public class ImagePaint{
 					scrollpane.revalidate();
 					scrollpane.repaint();
 				}
+			}else if (arg0.getSource() == menuItem_invertColor){
+				drawArea.invertColor();
+			}else if (arg0.getSource() == menuItem_blackWhite){
+				drawArea.blackAndWhite();
+			}else if (arg0.getSource() == menuItem_grayScale){
+				drawArea.grayScale();
+			}else if (arg0.getSource() == menuItem_laplacian1){
+				drawArea.laplacian(1);
+			}else if (arg0.getSource() == menuItem_laplacian2){
+				drawArea.laplacian(2);
+			}else if (arg0.getSource() == menuItem_laplacian3){
+				drawArea.laplacian(3);
+			}else if (arg0.getSource() == menuItem_paste){
+				drawArea.paste();
+			}else if (arg0.getSource() == menuItem_copy){
+				drawArea.cut();
+			}else if (arg0.getSource() == menuItem_cut){
+				drawArea.copy();
 			}
 			
 			
@@ -210,19 +229,21 @@ public class ImagePaint{
 		content = frame.getContentPane();
 		content.setLayout(new BorderLayout());
 		
+		coordinateLabel.setToolTipText("mouse position");
+		boxSizeLabel.setToolTipText("size of shape");
 		
 		JPanel controls = new JPanel();
-	    ImageIcon icon = new ImageIcon("icon/pencil_small.jpg");
-	    radio_pencil = makeControlButton("Pencil", icon);
-		radio_line = makeControlButton("Line", icon);
-		radio_rect = makeControlButton("Rect", icon);
-		radio_ellipse = makeControlButton("Ellipse", icon);
-		radio_brush = makeControlButton("Brush", icon);
-		radio_erase = makeControlButton("Erase", icon);
-		radio_string = makeControlButton("String", icon);
-		radio_curve = makeControlButton("Curve", icon);
-		radio_rectSelect = makeControlButton("", icon);
-		radio_colorPicker = makeControlButton("Color Picker", icon);
+	    
+	    radio_pencil = makeControlButton("", "pencil_small.png", "pencil");
+		radio_line = makeControlButton("", "line_small.png", "line");
+		radio_rect = makeControlButton("", "rectangle_small.png", "rectangle");
+		radio_ellipse = makeControlButton("", "eclipse_small.png", "ellipse");
+		radio_brush = makeControlButton("", "paint-brush_small.png", "brush");
+		radio_erase = makeControlButton("", "eraser_small.png", "erase");
+		radio_string = makeControlButton("", "string_small.png", "string");
+		radio_curve = makeControlButton("", "curve_small.png", "curve");
+		radio_rectSelect = makeControlButton("", "rectangleSelect.png", "rectangle select");
+		radio_colorPicker = makeControlButton("", "color-picker_small.png", "color picker");
 		
 		ButtonGroup controlBG = new ButtonGroup();
 		controlBG.add(radio_pencil);
@@ -236,8 +257,8 @@ public class ImagePaint{
 		controlBG.add(radio_rectSelect);
 		controlBG.add(radio_string);
 		
-		fillBtn = makeButton("Fill");
-		strokeBtn = makeButton("Stroke");
+		fillBtn = makeButton("", "fill_small.png", "fill mode");
+		strokeBtn = makeButton("", "stroke_small.png", "stroke mode");
 		
 		ButtonGroup strokeFillBG = new ButtonGroup();
 		strokeFillBG.add(fillBtn);
@@ -263,10 +284,16 @@ public class ImagePaint{
 		menuItem_undo.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.Event.CTRL_MASK));
 		menuItem_redo = makeJMenuItem("Redo");
 		menuItem_redo.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_R, java.awt.Event.CTRL_MASK));
+		menuItem_copy = makeJMenuItem("Copy");
+		menuItem_copy.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.Event.CTRL_MASK));
+		menuItem_cut = makeJMenuItem("Cut");
+		menuItem_cut.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_X, java.awt.Event.CTRL_MASK));
+		menuItem_paste = makeJMenuItem("Paste");
+		menuItem_paste.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_V, java.awt.Event.CTRL_MASK));
 		menuItem_about = makeJMenuItem("About");
-		menuItem_blur = makeJMenuItem("Blur");
+		menuItem_gaussian = makeJMenuItem("Gaussian Blur");
 		menuItem_sharpen = makeJMenuItem("Sharpen");
-		menuItem_sobel = makeJMenuItem("Soble Filter");
+		menuItem_sobel = makeJMenuItem("Sobel Filter");
 		menuItem_rotate180 = makeJMenuItem("180 degree");
 		menuItem_rotatem90 = makeJMenuItem("-90 degree");
 		menuItem_rotate90 = makeJMenuItem("90 degree");
@@ -274,20 +301,35 @@ public class ImagePaint{
 		menuItem_flipVertical = makeJMenuItem("Vertical");
 		menuItem_resize = makeJMenuItem("Resize Image");
 		menuItem_resizeCanvas = makeJMenuItem("Resize Canvas");
+		menuItem_invertColor = makeJMenuItem("Invert Color");
+		menuItem_blackWhite = makeJMenuItem("Black and White");
+		menuItem_grayScale = makeJMenuItem("GrayScale Image");
+		menuItem_laplacian1 = makeJMenuItem("Laplacian 1");
+		menuItem_laplacian2 = makeJMenuItem("Laplacian 2");
+		menuItem_laplacian3 = makeJMenuItem("Laplacian 3");
 		fileMenu.add(menuItem_new);
 		fileMenu.add(menuItem_open);
 		fileMenu.add(menuItem_save);
 		fileMenu.add(menuItem_saveAs);
 		editMenu.add(menuItem_undo);
 		editMenu.add(menuItem_redo);
+		editMenu.add(menuItem_copy);
+		editMenu.add(menuItem_cut);
+		editMenu.add(menuItem_paste);
 		imageMenu.add(subRotateMenu);
 		imageMenu.add(subFilpMenu);
 		imageMenu.add(menuItem_resize);
 		imageMenu.add(menuItem_resizeCanvas);
+		imageMenu.add(menuItem_invertColor);
+		imageMenu.add(menuItem_blackWhite);
+		imageMenu.add(menuItem_grayScale);
 		helpMenu.add(menuItem_about);
-		effectMenu.add(menuItem_blur);
+		effectMenu.add(menuItem_gaussian);
 		effectMenu.add(menuItem_sharpen);
 		effectMenu.add(menuItem_sobel);
+		effectMenu.add(menuItem_laplacian1);
+		effectMenu.add(menuItem_laplacian2);
+		effectMenu.add(menuItem_laplacian3);
 		subRotateMenu.add(menuItem_rotate90);
 		subRotateMenu.add(menuItem_rotatem90);
 		subRotateMenu.add(menuItem_rotate180);
@@ -319,13 +361,14 @@ public class ImagePaint{
 				makeStrokeSizeImage(16)
 			};
 		strokeSizeCbb = new JComboBox( items );
+		strokeSizeCbb.setToolTipText("stroke size");
 		strokeSizeCbb.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
 				drawArea.setStrokeSize(strokeSizeCbb.getSelectedIndex()+1);
 			}
 		});
-		strokeColorBtn = makeBrowseColorButtons("stroke", 5, true);
-		fillColorBtn = makeBrowseColorButtons("fill", 6, false);
+		strokeColorBtn = makeBrowseColorButtons("stroke", 5, true, "Click to browse color");
+		fillColorBtn = makeBrowseColorButtons("fill", 6, false, "click to browse color");
 		
 		JPanel drawPanel = new JPanel();
 		drawPanel.add(drawArea, BorderLayout.CENTER);
@@ -334,6 +377,7 @@ public class ImagePaint{
 		//
 		JPanel colorPanel = new JPanel();
 		JPanel browserColorPanel = new JPanel();
+		JPanel settingPanel = new JPanel();
 		
 		colorPanel.setSize(200, 70);
 		colorPanel.add(makeColorAreaButton(255, 255, 255));
@@ -368,9 +412,9 @@ public class ImagePaint{
 		controls.add(radio_erase);
 		controls.add(radio_string);
 		controls.add(radio_colorPicker);
-		controls.add(fillBtn);
-		controls.add(strokeBtn);
-		controls.add(strokeSizeCbb);		//
+		settingPanel.add(fillBtn);
+		settingPanel.add(strokeBtn);
+		settingPanel.add(strokeSizeCbb);		//
 		
 		JPanel coordinatePanel = new JPanel();
 		coordinatePanel.add(coordinateLabel, BorderLayout.WEST);
@@ -380,16 +424,16 @@ public class ImagePaint{
 		JPanel topPanel = new JPanel();
 		JPanel leftPanel = new JPanel();
 		JPanel bottomPanel = new JPanel();
+		
 		topPanel.setLayout(new GridLayout(1, 1, 10, 10));
+		topPanel.add(controls, BorderLayout.NORTH);
+		topPanel.add(settingPanel);
+		
 		bottomPanel.setLayout(new GridLayout(1, 1, 10, 10));
-		
-		
-		
 		bottomPanel.add(browserColorPanel, BorderLayout.WEST);
 		bottomPanel.add(colorPanel, BorderLayout.CENTER);
 		bottomPanel.add(coordinatePanel, BorderLayout.EAST);
 		
-		topPanel.add(controls, BorderLayout.NORTH);
 		//
 		content.add(topPanel, BorderLayout.NORTH);
 		content.add(scrollpane, BorderLayout.CENTER);
@@ -402,18 +446,20 @@ public class ImagePaint{
 		
 		
 	}
-	public JRadioButton makeControlButton(String name, ImageIcon icon){ //pencil, line, curve, erase,...
+	public JRadioButton makeControlButton(String name, String iconName, String tip){ //pencil, line, curve, erase,...
+		ImageIcon icon = new ImageIcon("icon/"+iconName);
 		JRadioButton button = new JRadioButton(name, icon);
+		button.setToolTipText(tip);
 		button.setBorderPainted(true);
 		button.addActionListener(actionListener);
 		return button;
 		
 	}
-	public JButton makeButton(String name){
-		JButton button = new JButton(name);
+	public JRadioButton makeButton(String name,String iconName, String tip){ //fillbtn, strokebtn
+		ImageIcon icon = new ImageIcon("icon/"+iconName);
+		JRadioButton button = new JRadioButton(name, icon);
+		button.setToolTipText(tip);
 		button.setBorderPainted(true);
-		button.setFocusPainted(false);
-		button.setContentAreaFilled(false);
 		button.addActionListener(buttonActionListener);
 		return button;
 	}
@@ -423,8 +469,9 @@ public class ImagePaint{
 		item.addActionListener(menuActionListener);
 		return item;
 	}
-	public JButton makeBrowseColorButtons(String type, final int actionNum, final boolean stroke){
+	public JButton makeBrowseColorButtons(String type, final int actionNum, final boolean stroke, String tip){
 		JButton But = new JButton();
+		But.setToolTipText(tip);
 		But.setContentAreaFilled(false);
 		But.setBorderPainted(true);
 		BufferedImage b_img = new BufferedImage(30, 30, BufferedImage.TYPE_3BYTE_BGR);

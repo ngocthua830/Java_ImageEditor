@@ -40,4 +40,34 @@ public class Effect {
         BufferedImageOp op = new ConvolveOp(kernel);
         return op;
 	}
+	public BufferedImageOp laplacian1(){
+		float[] laplacian1 = new float[] {
+				0.0f, 1.0f, 0.0f,
+	            1.0f, -4.0f, 1.0f,
+	            0.0f, 1.0f, 0.0f
+	    };
+        Kernel kernel = new Kernel(3,3,laplacian1);
+        BufferedImageOp op = new ConvolveOp(kernel);
+        return op;
+	}
+	public BufferedImageOp laplacian2(){
+		float[] laplacian1 = new float[] {
+				1.0f, 1.0f, 1.0f,
+	            1.0f, -8.0f, 1.0f,
+	            1.0f, 1.0f, 1.0f
+	    };
+        Kernel kernel = new Kernel(3,3,laplacian1);
+        BufferedImageOp op = new ConvolveOp(kernel);
+        return op;
+	}
+	public BufferedImageOp laplacian3(){
+		float[] laplacian1 = new float[] {
+				-0.5f, 2.0f, -0.5f,
+	            2.0f, -6.0f, 2.0f,
+	            -0.5f, 2.0f, -0.5f
+	    };
+        Kernel kernel = new Kernel(3,3,laplacian1);
+        BufferedImageOp op = new ConvolveOp(kernel);
+        return op;
+	}
 }

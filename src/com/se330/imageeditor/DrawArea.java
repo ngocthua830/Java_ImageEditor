@@ -9,6 +9,7 @@ import java.awt.Image;
 import java.awt.Point;
 import java.awt.Robot;
 import java.awt.Shape;
+import java.awt.color.ColorSpace;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -24,11 +25,13 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
+import java.awt.image.ColorConvertOp;
 import java.awt.image.ColorModel;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -64,6 +67,8 @@ public class DrawArea extends JComponent{
 		Color fillColor = Color.white;
 		Point startPoint = new Point();
 		Point endPoint = new Point();
+		Point roiStartPoint = new Point();
+		Point roiEndPoint = new Point();
 		
 		String filePath = "";
 		Effect effect = new Effect();
@@ -147,26 +152,33 @@ public class DrawArea extends JComponent{
 				public void mousePressed(MouseEvent arg0) {
 					graph_tmp = (Graphics2D)paintImage_tmp.getGraphics();
 					Shape aShape = null;
-					if (Control == 1){
-						aShape = new BrushShape();
-						actionList.add(new ShapeObject("brush", aShape, strokeSize, strokeColor, true, strokeColor, startPoint, endPoint));
-						redoList.clear();
-					}else if (Control == 5){
-						aShape = new PencilShape();
-						actionList.add(new ShapeObject("pencil", aShape, strokeSize, strokeColor, false, fillColor, startPoint, endPoint));
-						redoList.clear();
-					}else if (Control == 6){
-						aShape = new EraseShape();
-						actionList.add(new ShapeObject("erase", aShape, strokeSize, fillColor, true, fillColor, startPoint, endPoint));
-						redoList.clear();
-					}else if (Control == 10){
-						try{
-							Point screenPoint = arg0.getLocationOnScreen();
-							Robot rb=new Robot();
-							strokeColor = rb.getPixelColor(screenPoint.x/zoomSize, screenPoint.y/zoomSize);
-							imagepaint.setStrokeBtnColor(strokeColor);
-						}catch(Exception ex){
-							
+					if (Control == 9){
+						roiStartPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+						roiEndPoint = null;
+					}else{
+						roiEndPoint = null;
+						roiStartPoint = null;
+						if (Control == 1){
+							aShape = new BrushShape();
+							actionList.add(new ShapeObject("brush", aShape, strokeSize, strokeColor, true, strokeColor, startPoint, endPoint));
+							redoList.clear();
+						}else if (Control == 5){
+							aShape = new PencilShape();
+							actionList.add(new ShapeObject("pencil", aShape, strokeSize, strokeColor, false, fillColor, startPoint, endPoint));
+							redoList.clear();
+						}else if (Control == 6){
+							aShape = new EraseShape();
+							actionList.add(new ShapeObject("erase", aShape, strokeSize, fillColor, true, fillColor, startPoint, endPoint));
+							redoList.clear();
+						}else if (Control == 10){
+							try{
+								Point screenPoint = arg0.getLocationOnScreen();
+								Robot rb=new Robot();
+								strokeColor = rb.getPixelColor(screenPoint.x/zoomSize, screenPoint.y/zoomSize);
+								imagepaint.setStrokeBtnColor(strokeColor);
+							}catch(Exception ex){
+								
+							}
 						}
 					}
 					startPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
@@ -247,6 +259,9 @@ public class DrawArea extends JComponent{
 						aShape = drawRectangle(endPoint.x-strokeSize*3, endPoint.y-strokeSize*3, endPoint.x+strokeSize*3, endPoint.y+strokeSize*3);
 						EraseShape shape = (EraseShape) ((ShapeObject)actionList.get(actionList.size()-1)).getShape();
 						(shape.getShapePoints()).add(aShape);
+					}else if (Control == 9){
+						roiEndPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+						repaint();
 					}
 					imagepaint.setboxSizeLabel(new Point(arg0.getX()-startPoint.x, arg0.getY()-startPoint.y));
 					imagepaint.setLabelCoordinate(new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize));
@@ -305,8 +320,12 @@ public class DrawArea extends JComponent{
 			}
 			graph.drawImage(paintImage_tmp, 0, 0, null);
 			//drawObject(graph, paintImage_tmp);
-			
-			if (startPoint != null){
+			if (Control == 9 && roiEndPoint != null && roiStartPoint != null){
+				graph.setStroke(new BasicStroke(1));
+				graph.setPaint(new Color(200,200,200));
+				graph.drawRect((int)roiStartPoint.getX(), (int)roiStartPoint.getY(), (int)roiEndPoint.getX(),(int) roiEndPoint.getY());
+			}
+			if (startPoint != null && Control != 9){
 				graph.setStroke(new BasicStroke(strokeSize));
 				Shape ashape = null;
 				if (Control == 2 || Control == 3 || Control == 4||Control == 9){
@@ -316,18 +335,12 @@ public class DrawArea extends JComponent{
 						ashape = drawRectangle(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 					}else if (Control == 4){
 						ashape = drawEllipse(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-					}else if (Control == 9){
-						ashape = drawRectangle(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 					}
 					if (fillMode == true){
 						graph.setPaint(fillColor);
 						graph.fill(ashape);
 					}
 					graph.setPaint(strokeColor);
-					if (Control == 9){
-						graph.setStroke(new BasicStroke(1));
-						graph.setPaint(new Color(200,200,200));
-					}
 					graph.draw(ashape);
 					//graph.drawImage(paintImage, 0, 0, 100, 100, this);
 				}else{
@@ -457,7 +470,33 @@ public class DrawArea extends JComponent{
 				    		PREF_W = w;
 							this.setSize(PREF_W, PREF_H);
 							
+						}else if (action.getEffectType() == "invertColor"){
+							invertImage(paintImage_tmp);
 						}
+						else if (action.getEffectType() == "blackAndWhite"){
+							BufferedImage blackWhite = new BufferedImage(PREF_W, PREF_H, BufferedImage.TYPE_BYTE_BINARY);
+			                Graphics2D g2d = blackWhite.createGraphics();
+			                g2d.drawImage(image, 0, 0, this);
+			                g2d.dispose();
+			                paintImage_tmp = deepCopy(blackWhite);
+						    g = (Graphics2D)paintImage_tmp.getGraphics();
+						}else if (action.getEffectType() == "grayScale"){
+							ColorConvertOp op = new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null);
+			                op.filter(image, image);
+						}else if (action.getEffectType() == "laplacian1"){
+							BufferedImage tmp = deepCopy(image);
+					        effect.laplacian1().filter(tmp, image);
+						}else if (action.getEffectType() == "laplacian2"){
+							BufferedImage tmp = deepCopy(image);
+					        effect.laplacian2().filter(tmp, image);
+						}else if (action.getEffectType() == "laplacian3"){
+							BufferedImage tmp = deepCopy(image);
+					        effect.laplacian3().filter(tmp, image);
+						}else if (action.getEffectType() == "paste"){
+							
+						}
+						
+						
 					}
 				}
 			}
@@ -574,7 +613,7 @@ public class DrawArea extends JComponent{
 			drawObject(graph_tmp, paintImage_tmp);
 			repaint();
 		}
-		public void blur(){
+		public void gaussian(){
 			EffectObject effectObject = new EffectObject("gaussian", true, null, null);
 			actionList.add(effectObject);
 			drawObject(graph_tmp, paintImage_tmp);
@@ -633,6 +672,65 @@ public class DrawArea extends JComponent{
 			drawObject(graph_tmp, paintImage_tmp);
 			repaint();
 		}
+		public void invertColor(){
+			ScaleEffect scaleEffect = new ScaleEffect("invertColor", true, null, null, 0, 0);
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void blackAndWhite(){
+			ScaleEffect scaleEffect = new ScaleEffect("blackAndWhite", true, null, null, 0, 0);
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void grayScale(){
+			ScaleEffect scaleEffect = new ScaleEffect("grayScale", true, null, null, 0, 0);
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void laplacian(int type){
+			ScaleEffect scaleEffect = null;
+			if (type == 1){
+				scaleEffect = new ScaleEffect("laplacian1", true, null, null, 0, 0);
+			}else if (type == 2){
+				scaleEffect = new ScaleEffect("laplacian2", true, null, null, 0, 0);
+			}else if (type == 3){
+				scaleEffect = new ScaleEffect("laplacian3", true, null, null, 0, 0);
+			}
+			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void paste(){
+			BufferedImage ROI = paintImage_tmp.getSubimage((int)roiStartPoint.getX(), (int)roiStartPoint.getY(), (int)(roiEndPoint.getX()-roiStartPoint.getX()), (int)(roiEndPoint.getY()-roiStartPoint.getY()));
+			graph_tmp.drawImage(ROI, 0, 0, null);
+			repaint();
+		}
+		public void copy(){
+			BufferedImage ROI = paintImage_tmp.getSubimage(500, 500, 100, 100);
+			graph_tmp.drawImage(ROI, 0, 0, null);
+			repaint();
+		}
+		public void cut(){
+			BufferedImage ROI = paintImage_tmp.getSubimage(500, 500, 100, 100);
+			graph_tmp.drawImage(ROI, 0, 0, null);
+			repaint();
+		}
+		public static void invertImage(BufferedImage input) {
+	        for (int x = 0; x < input.getWidth(); x++) {
+	            for (int y = 0; y < input.getHeight(); y++) {
+	                int rgba = input.getRGB(x, y);
+	                Color col = new Color(rgba, true);
+	                col = new Color(255 - col.getRed(),
+	                                255 - col.getGreen(),
+	                                255 - col.getBlue());
+	                input.setRGB(x, y, col.getRGB());
+	            }
+	        }
+	        
+	    }
 		static BufferedImage deepCopy(BufferedImage bi) {
 			 ColorModel cm = bi.getColorModel();
 			 boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
