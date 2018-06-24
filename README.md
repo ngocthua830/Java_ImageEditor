@@ -1,2 +1,2 @@
 # Java_ImageEditor
-IDE: Eclipse
+IDE: Eclipse 3.8.1
