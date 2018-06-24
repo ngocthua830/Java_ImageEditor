@@ -56,6 +56,7 @@ public class ImagePaint{
 	JSlider zoomSlider;
 	JLabel coordinateLabel = new JLabel();
 	JLabel boxSizeLabel = new JLabel();
+	JLabel zoomLabel = new JLabel();
 	//Menu
 	JMenuBar menuBar;
 	JMenu fileMenu, editMenu, helpMenu, imageMenu, effectMenu, subRotateMenu, subFilpMenu;
@@ -370,6 +371,24 @@ public class ImagePaint{
 		strokeColorBtn = makeBrowseColorButtons("stroke", 5, true, "Click to browse color");
 		fillColorBtn = makeBrowseColorButtons("fill", 6, false, "click to browse color");
 		
+		zoomSlider = new JSlider(JSlider.HORIZONTAL, 1, 20, 1);  
+		zoomSlider.setMinorTickSpacing(2);  
+		zoomSlider.setMajorTickSpacing(10); 
+		zoomSlider.setToolTipText("Zoom Slider");
+		zoomLabel.setText(Integer.toString(zoomSlider.getValue()*100)+"%");
+		zoomSlider.addChangeListener(new ChangeListener() {
+			
+			public void stateChanged(ChangeEvent arg0) {
+				drawArea.setZoomSize(zoomSlider.getValue());
+				zoomLabel.setText(Integer.toString(zoomSlider.getValue()*100)+"%");
+				drawArea.setPREF_W(drawArea.getOld_PREF_W()*drawArea.getZoomSize());
+				drawArea.setPREF_H(drawArea.getOld_PREF_H()*drawArea.getZoomSize());
+				drawArea.setSize(drawArea.getPREF_W(), drawArea.getPREF_H());
+				scrollpane.revalidate();
+				scrollpane.repaint();
+			}
+		});
+		
 		JPanel drawPanel = new JPanel();
 		drawPanel.add(drawArea, BorderLayout.CENTER);
 		scrollpane = new JScrollPane(drawPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -433,6 +452,8 @@ public class ImagePaint{
 		bottomPanel.add(browserColorPanel, BorderLayout.WEST);
 		bottomPanel.add(colorPanel, BorderLayout.CENTER);
 		bottomPanel.add(coordinatePanel, BorderLayout.EAST);
+		bottomPanel.add(zoomSlider);
+		bottomPanel.add(zoomLabel);
 		
 		//
 		content.add(topPanel, BorderLayout.NORTH);
