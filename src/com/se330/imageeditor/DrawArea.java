@@ -3,6 +3,7 @@ package com.se330.imageeditor;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -11,6 +12,7 @@ import java.awt.Robot;
 import java.awt.Shape;
 import java.awt.color.ColorSpace;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -42,8 +44,13 @@ import javax.swing.ActionMap;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRootPane;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileFilter;
 
@@ -61,7 +68,7 @@ public class DrawArea extends JComponent{
 		
 		int Control = 2;
 		int strokeSize = 1;
-		int zoomSize = 1;
+		float zoomSize = 1;
 		boolean fillMode = false;
 		Color strokeColor = Color.black;
 		Color fillColor = Color.white;
@@ -73,7 +80,11 @@ public class DrawArea extends JComponent{
 		String filePath = "";
 		Effect effect = new Effect();
 		
+		String stringToDraw = "";	// string that is drawing
+		Point stringPoint = new Point(); // coordiante of string drawing
+		int stringSize = 15;
 		
+		///////////////////////////////////////SETTER AND GETTER/////////////////////////
 		public int getControl() {
 			return Control;
 		}
@@ -119,10 +130,10 @@ public class DrawArea extends JComponent{
 			this.fillMode = fillMode;
 		}
 		
-		public int getZoomSize() {
+		public float getZoomSize() {
 			return zoomSize;
 		}
-		public void setZoomSize(int zoomSize) {
+		public void setZoomSize(float zoomSize) {
 			this.zoomSize = zoomSize;
 		}
 		
@@ -145,15 +156,117 @@ public class DrawArea extends JComponent{
 		public void setFilePath(String filePath) {
 			this.filePath = filePath;
 		}
+		
+		public String getStringToDraw() {
+			return stringToDraw;
+		}
+		public void setStringToDraw(String stringToDraw) {
+			this.stringToDraw = stringToDraw;
+		}
+		public Point getStringPoint() {
+			return stringPoint;
+		}
+		public void setStringPoint(Point stringPoint) {
+			this.stringPoint = stringPoint;
+		}
+		
+		public int getStringSize() {
+			return stringSize;
+		}
+		public void setStringSize(int stringSize) {
+			this.stringSize = stringSize;
+		}
+		//////////////////////////////////////////////////////////////////////////////////////////////////
 		public DrawArea(ImagePaint imagePaint){
-			
+			final DrawArea drawArea = this;
 			final ImagePaint imagepaint = (ImagePaint)imagePaint;
+			
+			///////////////////////Add Text Panel//////////////////////////
+			final JTextField textField = new JTextField(10);
+			textField.addKeyListener(new KeyListener() {
+				
+				public void keyTyped(KeyEvent arg0) {
+					if (textField.getText() != ""){
+						drawArea.setStringToDraw(textField.getText());
+						drawArea.setStringPoint(startPoint);
+						drawArea.repaint();
+					}
+				}
+				
+				public void keyReleased(KeyEvent arg0) {
+					if (textField.getText() != ""){
+						drawArea.setStringToDraw(textField.getText());
+						drawArea.setStringPoint(startPoint);
+						drawArea.repaint();
+					}
+					
+				}
+				
+				public void keyPressed(KeyEvent arg0) {
+					if (textField.getText() != ""){
+						drawArea.setStringToDraw(textField.getText());
+						drawArea.setStringPoint(startPoint);
+						drawArea.repaint();
+					}
+					
+				}
+			});
+			Object[] items =
+		        {
+					1,
+					2,
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12,
+					13,
+					14,
+					15,
+					20,
+					25,
+					30,
+					35,
+					40,
+					45,
+					50,
+					60,
+					70,
+					100,
+					150,
+					200
+					
+				};
+			final JComboBox stringSizeCbb = new JComboBox( items );
+			stringSizeCbb.setToolTipText("stroke size");
+			stringSizeCbb.setSelectedIndex(14);
+			stringSizeCbb.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent e){
+					stringSize = Integer.parseInt(stringSizeCbb.getSelectedItem().toString());
+					drawArea.repaint();
+				}
+			});
+			JLabel stringFormLabelSize = new JLabel("Size: ");
+			final JPanel addStringFormPanel = new JPanel();
+			addStringFormPanel.add(textField);
+			addStringFormPanel.add(stringFormLabelSize);
+			addStringFormPanel.add(stringSizeCbb);
+			
+			///////////////////////END Add Text Panel////////////////////////
+			
 			addMouseListener(new MouseAdapter(){
 				public void mousePressed(MouseEvent arg0) {
+					startPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
+					endPoint = startPoint;
 					graph_tmp = (Graphics2D)paintImage_tmp.getGraphics();
 					Shape aShape = null;
 					if (Control == 9){
-						roiStartPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+						roiStartPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
 						roiEndPoint = null;
 					}else{
 						roiEndPoint = null;
@@ -174,18 +287,31 @@ public class DrawArea extends JComponent{
 							try{
 								Point screenPoint = arg0.getLocationOnScreen();
 								Robot rb=new Robot();
-								strokeColor = rb.getPixelColor(screenPoint.x/zoomSize, screenPoint.y/zoomSize);
+								strokeColor = rb.getPixelColor((int)(screenPoint.x/zoomSize), (int)(screenPoint.y/zoomSize));
 								imagepaint.setStrokeBtnColor(strokeColor);
 							}catch(Exception ex){
 								
 							}
+						}else if (Control == 7){//String button
+							
+							textField.setText("");
+							int result = JOptionPane.showConfirmDialog(null, addStringFormPanel, "Add Text", JOptionPane.OK_CANCEL_OPTION);
+							if (result == JOptionPane.OK_OPTION){
+								drawArea.setStringToDraw("");
+								drawArea.setStringPoint(null);
+								drawArea.addString(textField.getText(), startPoint);
+								drawArea.repaint();
+							}else{
+								drawArea.setStringToDraw("");
+								drawArea.setStringPoint(null);
+								drawArea.repaint();
+							}
 						}
 					}
-					startPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
-					endPoint = startPoint;
+					
 				}
 				public void mouseReleased(MouseEvent arg0) {
-					endPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+					endPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
 					Shape aShape = null;
 					graph_tmp.setStroke(new BasicStroke(strokeSize));
 					if (Control == 1){
@@ -229,8 +355,7 @@ public class DrawArea extends JComponent{
 						EraseShape eraseShape = new EraseShape();
 						eraseShape.getShapePoints().add(aShape);
 						actionList.add(new ShapeObject("erase", eraseShape, strokeSize, fillColor, true, fillColor, startPoint, endPoint));
-					}else if (Control == 7){
-						
+					}else if (Control == 7){ //String button
 						
 					}
 					repaint();
@@ -243,7 +368,7 @@ public class DrawArea extends JComponent{
 			addMouseMotionListener(new MouseMotionAdapter(){
 				public void mouseDragged(MouseEvent arg0) {
 					Shape aShape = null;
-					endPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+					endPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
 					if (Control == 1){
 						aShape = drawBrush(endPoint.x, endPoint.y, strokeSize*5, strokeSize*5);			
 						BrushShape shape = (BrushShape) ((ShapeObject)actionList.get(actionList.size()-1)).getShape();
@@ -252,24 +377,27 @@ public class DrawArea extends JComponent{
 						aShape = drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 						PencilShape shape = (PencilShape) ((ShapeObject)actionList.get(actionList.size()-1)).getShape();
 						(shape.getShapePoints()).add(aShape);
-						startPoint.x = arg0.getX()/zoomSize;
-						startPoint.y = arg0.getY()/zoomSize;
+						startPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
 					}else if (Control == 6){
 						endPoint = new Point(arg0.getX(), arg0.getY());
 						aShape = drawRectangle(endPoint.x-strokeSize*3, endPoint.y-strokeSize*3, endPoint.x+strokeSize*3, endPoint.y+strokeSize*3);
 						EraseShape shape = (EraseShape) ((ShapeObject)actionList.get(actionList.size()-1)).getShape();
 						(shape.getShapePoints()).add(aShape);
 					}else if (Control == 9){
-						roiEndPoint = new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize);
+						roiEndPoint = new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize));
 						repaint();
 					}
 					imagepaint.setboxSizeLabel(new Point(arg0.getX()-startPoint.x, arg0.getY()-startPoint.y));
-					imagepaint.setLabelCoordinate(new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize));
+					imagepaint.setLabelCoordinate(new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize)));
 					repaint();
 				}
 
 				public void mouseMoved(MouseEvent arg0) {
-					imagepaint.setLabelCoordinate(new Point(arg0.getX()/zoomSize, arg0.getY()/zoomSize));
+					if (zoomSize > 1){
+						imagepaint.setLabelCoordinate(new Point((int)(arg0.getX()/zoomSize), (int)(arg0.getY()/zoomSize)));
+					}else{
+						imagepaint.setLabelCoordinate(new Point((int)(arg0.getX()), (int)(arg0.getY())));
+					}
 				}
 				
 				
@@ -279,17 +407,30 @@ public class DrawArea extends JComponent{
 				
 				public void mouseWheelMoved(MouseWheelEvent arg0) {
 					if (arg0.isControlDown()){
-						if (arg0.getWheelRotation() > 0){
+						if (arg0.getWheelRotation() >= 1){
 							if (zoomSize > 1){
 								zoomSize = zoomSize-1;
+								PREF_W = (int)(old_PREF_W*zoomSize);
+								PREF_H = (int)(old_PREF_H*zoomSize);
+							}else if (zoomSize <= 1 && zoomSize >= 0.5){
+								zoomSize = zoomSize - 0.1f;
+								PREF_W = (int)(old_PREF_W*zoomSize);
+								PREF_H = (int)(old_PREF_H*zoomSize);
 							}
 							
-						}else{
-							zoomSize = zoomSize+1;
+						}else if (arg0.getWheelRotation() < 1){
+							if (zoomSize >= 1){
+								zoomSize = zoomSize+1;
+								PREF_W = (int)(old_PREF_W*zoomSize);
+								PREF_H = (int)(old_PREF_H*zoomSize);
+							}else if (zoomSize < 1){
+								zoomSize = zoomSize + 0.1f;
+								PREF_W = (int)(old_PREF_W*zoomSize);
+								PREF_H = (int)(old_PREF_H*zoomSize);
+							}
 						}
 						repaint();
-						PREF_W = old_PREF_W*zoomSize;
-						PREF_H = old_PREF_H*zoomSize;
+						
 						Size(PREF_W, PREF_H);
 						imagepaint.scrollpane.revalidate();
 						imagepaint.scrollpane.repaint();
@@ -297,17 +438,7 @@ public class DrawArea extends JComponent{
 					
 				}
 			});
-			
-			this.setFocusable(true);
-			InputMap im = getInputMap(WHEN_FOCUSED);
-			ActionMap am = getActionMap();
-			
-			im.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "onEnter");
-			
-			Action up = new SimpleAction("up");
-			am.put("onEnter",  up);
-			
-			
+
 		}
 		
 		public void paint(Graphics g){
@@ -319,6 +450,12 @@ public class DrawArea extends JComponent{
 				newImage(900, 700);
 			}
 			graph.drawImage(paintImage_tmp, 0, 0, null);
+			if (stringToDraw != ""){
+				graph.setPaint(strokeColor);
+				graph.setFont(new Font("TimesRoman", Font.PLAIN, stringSize)); 
+				graph.drawString(stringToDraw, stringPoint.x, stringPoint.y);
+				
+			}
 			//drawObject(graph, paintImage_tmp);
 			if (Control == 9 && roiEndPoint != null && roiStartPoint != null){
 				graph.setStroke(new BasicStroke(1));
@@ -497,6 +634,12 @@ public class DrawArea extends JComponent{
 						}
 						
 						
+					}else if (Action instanceof StringObject){
+						StringObject action = (StringObject)Action;
+						g.setStroke(new BasicStroke(action.getSize()));
+						g.setFont(new Font("TimesRoman", Font.PLAIN, action.getSize())); 
+						g.setPaint(action.getColor());
+						g.drawString(action.getContent(), action.getStartPoint().x, action.getStartPoint().y);
 					}
 				}
 			}
@@ -672,9 +815,15 @@ public class DrawArea extends JComponent{
 			drawObject(graph_tmp, paintImage_tmp);
 			repaint();
 		}
-		public void invertColor(){
+		public void invertColor(){ //add invert action
 			ScaleEffect scaleEffect = new ScaleEffect("invertColor", true, null, null, 0, 0);
 			actionList.add(scaleEffect);
+			drawObject(graph_tmp, paintImage_tmp);
+			repaint();
+		}
+		public void addString(String string, Point point){ //add string action
+			StringObject stringObject = new StringObject(string, point, strokeColor, stringSize);
+			actionList.add(stringObject);
 			drawObject(graph_tmp, paintImage_tmp);
 			repaint();
 		}
@@ -718,7 +867,7 @@ public class DrawArea extends JComponent{
 			graph_tmp.drawImage(ROI, 0, 0, null);
 			repaint();
 		}
-		public static void invertImage(BufferedImage input) {
+		public static void invertImage(BufferedImage input) { // invert the image
 	        for (int x = 0; x < input.getWidth(); x++) {
 	            for (int y = 0; y < input.getHeight(); y++) {
 	                int rgba = input.getRGB(x, y);
@@ -731,7 +880,7 @@ public class DrawArea extends JComponent{
 	        }
 	        
 	    }
-		static BufferedImage deepCopy(BufferedImage bi) {
+		static BufferedImage deepCopy(BufferedImage bi) { //Make a deep copy for object
 			 ColorModel cm = bi.getColorModel();
 			 boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
 			 WritableRaster raster = bi.copyData(null);
