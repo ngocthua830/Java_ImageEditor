@@ -430,14 +430,15 @@ public class ImagePaint{
 		//
 		controls.add(radio_rectSelect);
 		controls.add(radio_pencil);
-		controls.add(radio_line);
-		controls.add(radio_curve);
-		controls.add(radio_rect);
-		controls.add(radio_ellipse);
 		controls.add(radio_brush);
 		controls.add(radio_erase);
 		controls.add(radio_string);
 		controls.add(radio_colorPicker);
+		
+		controls.add(radio_line);
+		controls.add(radio_rect);
+		controls.add(radio_ellipse);
+		controls.add(radio_curve);
 		settingPanel.add(fillBtn);
 		settingPanel.add(strokeBtn);
 		settingPanel.add(strokeSizeCbb);		//
